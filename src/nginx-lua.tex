@@ -1,0 +1,93 @@
+\chapter*{lua-nginx-module}
+
+lua-nginx-module は、Webサーバであるnginxを、軽量プログラミング言語
+Luaで拡張できるというモジュールです。
+以下のようにLuaで記述可能なフックがいくつも用意されていますので、様々な拡張が可能です。
+
+\begin{figure}
+\scalebox{.3}{\includegraphics{order.ps}}
+\caption{Luaで記述可能なフックと呼び出される順番}
+\end{figure}
+
+よく使われるのは、init、rewrite、access、content、logでしょうか。
+ちょっと見ないうちに、ssl絡みやfilter絡みのフックが増えています。
+詳細は、openrestyのlua-nginx-moduleのGitHubリポジトリを参照してください。
+
+\section*{Hello World}
+では、さっそくやってみましょう。
+nginx.confのserverブロックに以下の内容を追加します。
+\lstset{
+  basicstyle={\ttfamily\small},%
+  identifierstyle={\small},%
+  commentstyle={\small\itshape},%
+  keywordstyle={\small\bfseries},%
+  ndkeywordstyle={\small},%
+  stringstyle={\small\ttfamily},
+  frame={tb},
+  breaklines=true,
+  columns=[l]{fullflexible},%
+  numbers=left,%
+  xrightmargin=0zw,%
+  xleftmargin=3zw,%
+  numberstyle={\scriptsize},%
+  stepnumber=1,
+  numbersep=1zw,%
+  lineskip=-0.5ex%
+}
+\begin{lstlisting}[caption=hello world,label=list:hello-world]
+server{
+         .... (snip)
+
+  location /hello{
+    default_type text/plain;
+    content_by_lua 'ngx.say("Hello World")';
+  }
+\end{lstlisting}
+
+変更したら、nginxを再起動させて、/helloにアクセスしてみましょう。
+自分のPCにnginxをインストールして試している人は、http://localhost/hello
+にブラウザでアクセスして、Hello Worldと表示されたら成功です。
+
+次にGETリクエストを取得してみましょう。
+\begin{lstlisting}[caption=GETパラメータの取得,label=list:get]
+server{
+         .... (snip)
+
+  location /hello{
+    default_type text/plain;
+    content_by_lua '
+      local args = ngx.req.get_uri_args()
+      ngx.say("Hello " .. args.name)';
+    }
+\end{lstlisting}
+http://localhost/hello?name=chomy にアクセスして、Hello chomyと表示される
+でしょう。最後はPOSTです。
+\begin{lstlisting}[caption=POSTパラメータの取得,label=list:get]
+server{
+         .... (snip)
+
+  location /hello{
+    default_type text/plain;
+    content_by_lua '
+      ngx.req.read_body()
+      local args = ngx.req.get_post_args()
+      ngx.say("Hello " .. args.name)';
+    }
+\end{lstlisting}
+
+その他、ヘッダの読み書きは、
+\begin{lstlisting}[caption=ヘッダの読み書き,label=list:hello-world]
+ngx.header.content_type = 'text/plain';
+ngx.header["X-My-Header"] = 'blah blah';
+ngx.header['Set-Cookie'] = {'a=32; path=/', 'b=4; path=/'}
+\end{lstlisting}
+%
+ngx.header変数でアクセスできます。クライアントへのステータスコードの
+返却は、ngx.exit 関数で行います。
+
+\section*{使用可能なライブラリ}
+nginxの中でLua5.1インタープリタが動いているので、OpenResty以外のものも
+Lua5.1で動くライブラリは使用可能です。
+インストールされているライブラリのPATHは、lua\_package\_path で
+共有ライブラリのPATHは、lua\_package\_cpath で指定します。
+

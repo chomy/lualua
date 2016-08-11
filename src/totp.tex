@@ -1,0 +1,20 @@
+\chapter*{Time based One Time Password}
+
+さて、認証の話に戻りましょう。これから多要素認証システムを
+nginxに組み込むわけですが、パスワード以外の何を使って認証するか
+決めなければなりません。よくあるのは、指紋や静脈と行った生体認証
+ですが、これはスキャナが別途必要なので現実的ではありません。
+次はハードウェアワンタイムトークンなのですが、Yubikeyの登場で
+ずいぶん入手性が良くなったとはいえ、まだ敷居が高いようです。
+今はみんなスマートフォンを持っているので、スマートフォンをトークンに
+する手があります。今回はGoogle Authenticator や、IIJ SmartKey が使っている
+TOTP (Time based One Time Password)を採用しましょう。
+
+TOTPはRFC6238で規定されています。ワンタイムパスワードの生成は簡単です。
+\begin{enumerate}
+\item 鍵となる数値を$key$とする
+\item パスワードの有効期限を30秒とし、epochからの秒数を30で割って、小数点以下を切り捨てた整数値を$step$とする
+\item この$key$を鍵として、stepをコンテンツとするHMAC-SHA1を計算
+\item 計算したHMAC-SHA1の下位4bitを$offset$と
+\end{enumerate}
+
