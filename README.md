@@ -8,4 +8,5 @@ Issueか、Twitter([@jm6xxu](https://twitter.com/jm6xxu))までお知らせく�
 
 ## 電子版PDF
 
-[最新版](https://github.com/chomy/lualua/raw/master/LuaLua.pdf)
+最新版(master)
+* [LuaLua.pdf](https://github.com/chomy/lualua/raw/master/LuaLua.pdf)
