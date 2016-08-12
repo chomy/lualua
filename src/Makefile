@@ -32,7 +32,7 @@ ${DVI}: ${TEXFILES} ${PSFILES}
 	${TEX} main.tex
 
 ${PDF}: ${DVI} 
-	${DVIPDF} -p ${PAPERSIZE} -o ${PDF} ${DVI}
+	${DVIPDF} -f ipa.map -p ${PAPERSIZE} -o ${PDF} ${DVI}
 
 ${PS}: ${PDF} 
 	${PDF2PS} ${PDF} ${PS}
