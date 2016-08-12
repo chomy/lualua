@@ -7,4 +7,5 @@ TeXソースのバージョン管理および電子版PDFの公開を行って�
 Issueか、Twitter([@jm6xxu](https://twitter.com/jm6xxu))までお知らせください。
 
 ## 電子版PDF
-	* [最新版(master)](https://github.com/chomy/lualua/raw/master/LuaLua.pdf)
+
+[最新版](https://github.com/chomy/lualua/raw/master/LuaLua.pdf)
