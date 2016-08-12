@@ -1,54 +1,51 @@
 \section*{編集後記}
-DSPラジオの原理をお送りします。これはコミケ等で頒布した、
-雑音工房偽術部彙報に、
-私の個人blog noisefactory (\texttt{http://www.k.nakao.name/blog})に
-書いた記事(無線LANデバイスが技術適合証明を受けなければならない理由)を追加したものです。
+``nginxでLuaLuaする''をお送りします。
+実は、今年(2016年)の2月にタイトルだけ思いついていて、認証系の何かを
+書こうと思っていましたが、実は6月までちゃんと決まっていませんでした。
+6月にCISSPのセミナーに出て、AzureのAD認証の話を聞いたのがきっかけで
+多要素認証の話を書くことにしました。
 
-十分にチェックしたつもりですが、計算やロジックに間違いがある可能性が
-あります。もし間違いがありましたらそれは100\%私の責任です。
-何かありましたら、下記のtwitterアカウント、もしくはgithubリポジトリ
-(ihttps://github.com/chomy/DSPRadioFundamental)
-のIssueでお知らせください。
+5月のパスワード定期変更のニュースは衝撃でした。しかし報道では
+他要素認証が必須という肝心な部分が抜け落ちていた、または書いてあっても
+最後の方にちょこっと書いてあるくらいの扱いでしたので、
+このニュースを根拠に、弱いパスワードであるにもかかわらず、変更せず
+ドヤ顔で使い続ける人が増えそうで、非常に心配です。
 
 
-さて今後ですが、
-夏コミには、「NginxでLuaLuaする」というタイトルで、NginxのLua拡張を使って
-何かWebサービスを作って見た的なものを出そうと考えています。
-（まだ1文字も書いていませんが、もしかしたらこのイベントに間に合うかもしれません）
-また先日、私事ですが学者を廃業してIT セキュリティの世界に入りましたので
-セキュリティ絡みで何か書けないかなと画策しております。
+多要素認証といいながら、TOTPだけしか実装していません。パスワードの
+認証機能も入れたかったのですが、時間切れでした。
+サーバ側のパスワードの保存方法は、語り尽くされていますので
+みなさんへの課題としておきましょう。
+断じて、DBに平文で保存してはいけません。ソルト、ハッシュ、ストレッチです。
+この辺りのことも含めて、後日加筆するかもしれません。
+この原稿は、GitHubで管理されていますので、下にあるGitHubリポジトリを
+watchすると更新時にお知らせが届きます。
 
-最後に、この同人誌はDebian/GNU Linux、\TeX Live2015、
-psutils、git、GNU Make、vimといった、オープンソースソフトウェアを使って作成されました。
-また日本語のフォントはIPAexフォントをPDFに埋め込んでいます。
-このような有益なソフトウェアを開発、維持、管理していただいているすべての皆様に感謝します。
-また、このページまでたどり着いてくれた読者の方（おそらくあなただけです）に感謝します。
+紙でこの同人誌を入手された方は、下のGitHubリポジトリに
+PDF版も入手可能です。また電子版で入手したけれども紙も欲しいという方も
+面付け済みのPDFをGitHubにアップロードしていますので、短辺とじ両面印刷
+でコピー本を作成することができます。
+
+最後に、この同人誌はDebian/GNU Linux、\TeX Live2016、
+psutils、git、GNU Make、vimといった、オープンソースソフトウェアを使って作成されました。フォントはIPAexフォントをPDFに埋め込んでいます。
 ありがとうございました。
 
 \begin{flushright}
-2016年6月　Keisuke Nakao (@jm6xxu) 
+2016年8月13日　Keisuke Nakao (@jm6xxu) 
 \end{flushright}
-\clearpage
-
-
-\begin{thebibliography}{9}
-	\bibitem{MS} ``Microsoft Password Guidance'' https://www.microsoft.com/en-us/research/publication/password-guidance/
-\end{thebibliography}
 \subsection*{参考文献}
 \begin{itemize}
-  \item 中島将光
-    「マイクロ波工学」 森北出版 ISBN4-627-71030-5
-  \item 常川光一
-    「線状アンテナから電波が出るしくみ」 CQ出版社 RFワールド No.11 pp.30-39, ISBN978-4-7898-4890-9
 
-  \item 
-    SI4825-A10データシート \texttt{http://www.silabs.com/Support Documents/TechnicalDocs/Si4825-A10.pdf}
-	\item
-	法令データ提供サービス \texttt{http://law.e-gov.go.jp/cgi-bin/idxsearch.cgi} 電波法、電波法施行規則
-   \end{itemize}
-\clearpage
-\mbox{}
+\item ``Microsoft Password Guidance'' \\
+https://www.microsoft.com/en-us/research/publication/password-guidance/
+\item ``DRAFT NIST Special Publication 800-63B Digital Authentication Guideline''\\
+https://pages.nist.gov/800-63-3/sp800-63b.html
+\item ``Key Uri Format''\\
+https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+\end{itemize}
 %\clearpage
 %\mbox{}
-\vspace{36em}\\
+%\clearpage
+\mbox{}\\
+\vspace{48em}\\
 この作品はクリエイティブ・コモンズ・ライセンス 表示 - 継承 2.1 日本 の下に提供されています。このライセンスのコピーを見るためには、http://creativecommons.org/licenses/by-sa/2.1/jp/ をご覧ください。

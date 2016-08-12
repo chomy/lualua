@@ -1,0 +1,187 @@
+\chapter*{実装}
+
+TOTPの計算方法も、Luaをnginxで扱う方法もわかったので、実装しましょう。
+ユーザの登録機能は仕様範囲外とします。
+
+\section*{ユーザーデータベース}
+ユーザー名と鍵がPostgreSQLのusersテーブルに格納されているとします。
+鍵長は10bitで、鍵は16進20桁のASCIIで格納しましょう。
+
+\begin{lstlisting}[caption=SQL Schema,label=list:schema]
+CREATE TABLE users (
+	name text not null,
+	secret varchar(20)
+);
+CREATE INDEX TO idxname ON users (name);
+\end{lstlisting}
+
+データベーススキーマをListing \ref{list:schema}に示します。
+ここでは、Key-Value Storeっぽく使ってみたかったので、あえて正規化を
+していません。まぁする必要もないですが。
+
+Postgresからsecretを取得するために、ドライバをロードしておきましょう。
+nginx.confにinit\_by\_luaを追記記述しましょう。
+init\_by\_lua は、nginxの設定ファイルをロードする時に実行され、
+Lua インタープリタの初期化に使います。
+PostgreSQLのアクセスには、LuaSQLを使用しました。
+
+\begin{lstlisting}[caption=Luaインタープリタの初期化,label=list:init]
+init_by_lua '
+        driver = require "luasql.postgres"
+        env = assert(driver.postgres())
+        ffi = require("ffi")
+        ffi.cdef[[void get_token(const char *key, char *result, uint32_t len)]]
+        otp = ffi.load("/usr/local/lib/libtotp.so")
+';
+server {
+           ....
+\end{lstlisting}
+
+また、4行目以降はListing \ref{list:gettoken} のコードを含む
+トークンを計算するためのライブラリをロードしています。
+
+Listing \ref{list:getsecret}は、PostgreSQLからsecretを取得する関数です。
+SQL Injectionを防ぐため、Prepared statementを使用しています。
+
+\begin{lstlisting}[caption=データベースからsecretを取得する関数,label=list:getsecret]
+function get_secret(name)
+  local con=assert(env:connect("dbname=otp user=user"))
+  con:execute("PREPARE secret (text) as SELECT secret from users where name=$1;")
+  local cur=con:execute(string.format([[EXECUTE secret('%s');]],name))
+  local row = cur:fetch({},"a")
+  local secret
+  if not row then
+    secret = nil
+  else
+    secret = row.secret
+  end
+  cur:close()
+  con:close()
+
+  return secret
+end
+\end{lstlisting}
+
+\section*{Cライブラリを用いたトークンの計算}
+Listing \ref{list:token}は、FFIを使ってC++で書いたライブラリを
+呼び出すところです。2行目で、結果を格納するchar型のバッファを確保して
+Listing \ref{list:init}の6行目でロードしたライブラリのget\_token関数に
+渡しています。
+そして、char[64]型をLua stringに変換するためにffi.string関数を使用しました。
+
+\begin{lstlisting}[caption=Tokenを計算,label=list:token]
+function get_token(secret)
+  local token = ffi.new("char[64]")
+  otp.get_token(secret, token, 64)
+  return ffi.string(token)
+end
+\end{lstlisting}
+
+\section*{認証}
+Listing \ref{list:auth}には、認証部分のコードを示します。
+POSTメソッドで、ユーザ名とトークンが入力されると
+DBにアクセスしてsecretを取得し、tokenを計算しています。
+計算したtokenが入力されたtokenと一致したら、ngx.exit関数を
+用いて、ステータスコード200を、ユーザーデータベースにユーザー名が
+登録されていなかったり、トークンが一致しなかったら、401 Unauthorizedを
+返却します。
+
+\begin{lstlisting}[caption=SQL Schema,label=list:auth]
+ngx.req.read_body()
+local args, err = ngx.req.get_post_args()
+if not args then
+  ngx.exit(ngx.HTTP_UNAUTHORIZED)
+end
+
+local user = args.user
+local secret = get_secret(user)
+if not secret then
+  ngx.exit(ngx.HTTP_UNAUTHORIZED)
+end
+
+if(args.token ~= get_token(secret)) then
+  ngx.exit(ngx.HTTP_UNAUTHORIZED)
+end
+
+ngx.exit(ngx.HTTP_OK)
+\end{lstlisting}
+
+\section*{QRコードの作成}
+Google Authenticatorは、QRコードでsecretを設定するのが一般的です。
+secretを生成し、QRコードを生成してみましょう。
+まず乱数源から10bit取り出して、BASE32エンコードします。
+Listing \ref{list:secret}は、/dev/urandomから10bitの乱数を取り出して
+BASE32エンコードしています。5行目の文字列が生成されたsecretです。
+
+\begin{lstlisting}[caption=secret生成の例,label=list:secret]
+$ dd if=/dev/urandom bs=10 count=1|base32
+1+0 レコード入力
+1+0 レコード出力
+10 bytes copied, 0.000120597 s, 82.9 kB/s
+NDS4MMILSEND5DZZ
+\end{lstlisting}
+
+次にQRコードを生成します。
+Linuxを使っている方は、qrencodeコマンドを使用するのが楽です。
+\begin{lstlisting}[caption=QRコード生成の例,label=list:qr]
+$ qrencode -o qrcode.png "otpauth://totp/Example:alice@example.com?secret=NDS4MMILSEND5DZZ&issuer=Example"
+\end{lstlisting}
+とコマンドラインで実行すると、qrcode.pngというファイル名で、図\ref{fig:qr}
+のようなQRコードが生成されます。
+
+\begin{figure}
+  \begin{center}
+    \includegraphics{qrcode.eps} \label{fig:qr}
+  \end{center}
+  \caption{生成されたQRコード}
+\end{figure}
+%
+Listing \ref{list:qr}でqrencodeに渡した文字列の、secretがトークンの生成に
+使用する、BASE32エンコードされたsecretです。
+
+次に生成したsecretをデータベースに登録します。
+\begin{lstlisting}[caption=データベースへの登録,label=list:insert]
+$ echo NDS4MMILSEND5DZZ | base32 -d |hexdump
+0000000 e568 31c6 910b 3e1a 398f               
+000000a
+$ psql -c "INSERT INTO users (name,secret) VALUES('alice@example.com','68e5c6310b911a3e8f39');" otp
+\end{lstlisting}
+Listing \ref{list:insert}の1行目で生成したsecretを16進数に変換しています。
+4行目は、その変換した値をpsqlコマンドでデータベースにINSERTしているのですが
+注意して欲しいのは、登録するsecretがビッグエンディアンになっています。
+もちろん、CPUがビッグエンディアンであるコンピュータを使用されていれば、
+2行目に表示された通り入力します。
+
+\section*{Deploy}
+Luaのコードを配置しましょう。作成したLuaのプログラムをnginx.confに
+埋め込んでも良いのですが、行数も多くなりましたので、JITコンパイルした
+ファイルを指定することにしましょう。これにより、設定ファイルの可読性が
+上がるだけでなく、実効速度も向上します。
+
+JITコンパイルは以下ように行います。
+\begin{lstlisting}[caption=JIT Compile,label=list:compile]
+$ luajit -bg totp.lua totp.luac
+\end{lstlisting}
+%
+totp.luaをコンパイルして、totp.luacを作成します。これを設定ファイルで
+指定します。locationブロックのaccess\_by\_lua\_fileに指定します。
+
+\begin{lstlisting}[caption=コンパイルしたファイルを設定,label=list:config]
+server{
+          ......
+  location /auth{
+     default_type text/plain;
+     content_by_lua_file '/usr/local/lib/totp/totp.luac';
+  }
+          .....
+\end{lstlisting}
+
+
+\section*{テスト}
+テストは、curlコマンドでPOSTリクエストを送るのが良いでしょう
+\begin{lstlisting}[caption=テスト,label=list:test]
+$ curl -v -X POST -d "user=alice" -d"token:123456" http://localhost/auth 
+\end{lstlisting}
+これで、ステータスコード200が返ってくれば認証成功、401が返ってくれば
+認証失敗です。
+
