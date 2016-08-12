@@ -1,0 +1,7 @@
+*.aux
+*.log
+*.dvi
+*.swp
+main.ps
+DSPRadioFundamental.ps
+
