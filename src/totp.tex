@@ -6,7 +6,7 @@ nginxに組み込むわけですが、パスワード以外の何を使って認
 ですが、これはスキャナが別途必要なので現実的ではありません。
 次はハードウェアワンタイムトークンなのですが、Yubikeyの登場で
 ずいぶん入手性が良くなったとはいえ、まだ敷居が高いようです。
-今はみんなスマートフォンを持っているので、スマートフォンをトークンに
+しかし現在ではほとんどの人がスマートフォンを持っているので、スマートフォンをトークンに
 する手があります。今回はGoogle Authenticator や、IIJ SmartKey が使っている
 TOTP (Time based One Time Password)を採用しましょう。
 
@@ -15,9 +15,9 @@ TOTPはRFC6238で規定されています。ワンタイムパスワードの生
 \begin{enumerate}
 \item 鍵となる数値を$secret$とする
 \item パスワードの有効期限を30秒とし、epochからの秒数を30で割って、小数点以下を切り捨てた整数値を$step$とする
-\item この$secret$を鍵として、stepをコンテンツとするHMAC-SHA1を計算
+\item この$secret$を鍵として、$step$をコンテンツとするHMAC-SHA1を計算
 \item 計算したHMAC-SHA1の下位4bitを$offset$とする
-\item HMAC-SHA1のoffsetバイトから4byte取り出し、0x7FFFFFFFとANDをとる
+\item HMAC-SHA1の$offset$バイトから4byte取り出し、0x7FFFFFFFとANDをとる
 \item 最後に必要な桁数を下位の桁から取り出す
 \end{enumerate}
 
@@ -32,13 +32,14 @@ TOTPではユーザとサービス・プロバイダでHMAC-SHA1を計算する�
 また、ログインに使用するトークンは30秒毎に変化しますので、
 仮に中間者攻撃を受けてトークンが漏洩しても、そのトークンが使えるのは30秒間
 だけです。
-また、トークンから鍵を復号するにはものすごく莫大な計算量が必要で
+また、仮にトークンからHMAC-SHA1を推定できたとしても、
+鍵を復号するにはおそろしく莫大な計算量が必要で
 現実的ではありません。
 
 さて、実装時にはLuaでトークンを計算するのですが、どうやらnginxに
 組み込まれているLua5.1は、ビット演算をサポートしていないようです。
 よって、泣く泣くC++で関数を書いてFFI(Foreign Function Interface)を使って
-呼び出すことにした。トークンを計算するOpenSSLを使ったC++のコードを
+呼び出すことにしました。トークンを計算するOpenSSLを使ったC++のコードを
 Listing \ref{list:gettoken} に示します。
 
 \begin{lstlisting}[caption=トークンの計算(C++),label=list:gettoken]
@@ -61,9 +62,9 @@ uint32_t get_token(const unsigned char *key,const int keylen,
 \end{lstlisting}
 
 Luaから呼ばれる関数は、extern "C"宣言が必要です。
-C++11の機能を使っています。ここでは使っていませんが
-右辺値参照がすばらしいので、もうC++99には戻れません。
-g++6.1はデフォルトでC++14とのことですので、
+以下のコードはC++11の機能を使っています。ここでは使っていませんが
+右辺値参照がすばらしいので、私はもうC++99には戻れません。
+g++6.1はデフォルトがC++14とのことですので、
 もうC++99は忘れても良いでしょう。
 
 \begin{lstlisting}[caption=呼び出し用の関数,label=list:caller]

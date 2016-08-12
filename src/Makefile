@@ -3,8 +3,8 @@ DVIPDF=dvipdfmx
 #DVIPDFFLAGS=-pa4
 DVIPS=dvips
 PDF2PS=pdf2ps
-PAPERSIZE=b5
-PAPERSIZE_PRINT=b4
+PAPERSIZE=a5
+PAPERSIZE_PRINT=a4
 
 PREFIX=LuaLua
 SRC_PREFIX=main
@@ -18,7 +18,7 @@ TEXFILES=main.tex imple.tex totp.tex nginx-lua.tex intro.tex colophon.tex cover.
 .suffix: .tex .dvi
 
 #all: ${DVI}
-all: book
+all: pdf
 
 pdf: ${PDF}
 
